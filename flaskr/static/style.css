@@ -28,3 +28,5 @@ input[type=submit] { align-self: start; min-width: 10em; }
 .comment .about { display: flex; align-items: flex-end; font-size: 0.85em; color: slategray; font-style: italic }
 .comment > header h1 { margin-bottom: 0; }
 .like { margin-bottom: 1em; }
+.content > header form.search { display: flex; flex-direction: row; margin-bottom: 0; }
+.content > header form.search > input { margin-bottom: 0.5em; margin-right: 0.5em; }

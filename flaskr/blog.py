@@ -210,6 +210,10 @@ def like(id):
     db = get_db()
     post = get_post(id)
     new_value = request.args.get('new_value')
+
+    if not new_value:
+        abort(400)
+
     new_value = int(new_value)
     value = db.execute(
         'SELECT value FROM like WHERE user_id = ? AND post_id = ?',
@@ -269,6 +273,26 @@ def tag_filter(tag):
         ' WHERE tag.tag = ?'
         ' ORDER BY created DESC',
         (tag,)
+    ).fetchall()
+    tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
+
+    return render_template('blog/filter.html', posts=posts, tags=tags)
+
+
+@bp.route('/search')
+def search():
+    db = get_db()
+    query = request.args.get('query')
+
+    if not query:
+        abort(400, 'Search query is empty')
+
+    posts = db.execute(
+        'SELECT *, username FROM post'
+        ' JOIN user ON post.author_id = user.id'
+        ' WHERE post.title LIKE ?'
+        ' ORDER BY created DESC',
+        (f'%{query}%',)
     ).fetchall()
     tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
 

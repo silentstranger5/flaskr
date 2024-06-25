@@ -1,6 +1,6 @@
 {% extends "blog/index.html" %}
 
 {% block header %}
-  {% block title %}<h1>Filter</h1>{% endblock %}
+  <h1>{% block title %}Filter{% endblock %}</h1>
   <a class="action" href="{{ url_for('blog.index') }}">Back</a>
 {% endblock %}
