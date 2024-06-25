@@ -100,3 +100,10 @@ def delete(id):
     db.execute('DELETE FROM post WHERE id = ?', (id,))
     db.commit()
     return redirect(url_for('blog.index'))
+
+
+@bp.route('/<int:id>/detail')
+def detail(id):
+    db = get_db()
+    post = get_post(id)
+    return render_template('blog/detail.html', post=post)
