@@ -23,7 +23,7 @@
           <a class="action" href="{{ url_for('blog.update', id=post['id']) }}">Edit</a>
         {% endif %}
       </header>
-      <p class="body">{{ post['body'] | truncate() }}</p>
+      <p class="body">{{ post['body'] | convert | striptags | truncate }}</p>
       {% if tags[post['id']] %}
         <div>
           <span>Tags: </span>
@@ -37,7 +37,7 @@
     <hr>
   {% endfor %}
   {% if not posts %}
-    <p>No posts were found for the specified request</p>
+    <p>No posts were found.</p>
   {% endif %}
   <footer>
     {% if offset > 0 %}

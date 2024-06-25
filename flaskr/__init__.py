@@ -1,4 +1,5 @@
 import os
+import marko
 
 from flask import Flask
 
@@ -41,5 +42,7 @@ def create_app(test_config=None):
 
     from . import comments
     app.register_blueprint(comments.bp)
+
+    app.jinja_env.filters['convert'] = marko.convert
 
     return app

@@ -10,6 +10,7 @@ from flaskr.db import get_db
 
 import os.path
 
+
 bp = Blueprint('blog', __name__)
 
 
@@ -34,6 +35,7 @@ def index():
         (offset,)
     ).fetchall()
     tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
+
     return render_template(
         'blog/index.html', 
         posts=posts, 
@@ -277,6 +279,7 @@ def detail(id):
     tags = get_tags(id)
     comments = get_comments(id)
     image = get_image(id)
+
     return render_template(
         'blog/detail.html', 
         post=post, 
