@@ -38,6 +38,18 @@ def get_post(id, check_author=True):
     return post
 
 
+def get_likes(id):
+    likes = get_db().execute(
+        'SELECT SUM(value) FROM like WHERE post_id = ?',
+        (id,)
+    ).fetchone()[0]
+
+    if likes is None:
+        likes = 0
+
+    return likes
+
+
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
@@ -106,4 +118,36 @@ def delete(id):
 def detail(id):
     db = get_db()
     post = get_post(id)
-    return render_template('blog/detail.html', post=post)
+    likes = get_likes(id)
+    return render_template('blog/detail.html', post=post, likes=likes)
+
+
+@bp.route('/<int:id>/like')
+@login_required
+def like(id):
+    db = get_db()
+    post = get_post(id)
+    new_value = request.args.get('new_value')
+    new_value = int(new_value)
+    value = db.execute(
+        'SELECT value FROM like WHERE user_id = ? AND post_id = ?',
+        (g.user['id'], post['id'])
+    ).fetchone()
+    if value is None:
+        value = 0
+        db.execute(
+            'INSERT INTO like (user_id, post_id, value)'
+            ' VALUES (?, ?, ?)',
+            (g.user['id'], post['id'], value)
+        )
+        db.commit()
+    else:
+        value = value['value']
+    if value == new_value:
+        new_value = 0
+    db.execute(
+        'UPDATE like SET value = ? WHERE user_id = ? AND post_id = ?',
+        (new_value, g.user['id'], post['id'])
+    )
+    db.commit()
+    return redirect(url_for('blog.detail', id=post['id']))

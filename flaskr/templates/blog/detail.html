@@ -17,5 +17,10 @@
       </div>
     </header>
     <p class="body">{{ post["body"] }}</p>
+    <div class="likes">
+      <a href="{{ url_for('blog.like', id=post['id'], new_value=1) }}">Like</a>
+      <span>{{ likes }}</span>
+      <a href="{{ url_for('blog.like', id=post['id'], new_value=-1) }}">Dislike</a>
+    </div>
   </article>
 {% endblock %}
