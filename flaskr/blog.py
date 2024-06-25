@@ -1,11 +1,14 @@
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for
+    Blueprint, current_app, flash, g, redirect, render_template, request, session, url_for
 )
 
 from werkzeug.exceptions import abort
+from werkzeug.utils import secure_filename
 
 from flaskr.auth import login_required
 from flaskr.db import get_db
+
+import os.path
 
 bp = Blueprint('blog', __name__)
 
@@ -121,6 +124,34 @@ def insert_tags(id, tags):
     db.commit()
 
 
+def get_image(id):
+    image = get_db().execute(
+        'SELECT path FROM image WHERE post_id = ?',
+        (id,)
+    ).fetchone()
+
+    if image is not None:
+        image = os.path.join(os.pardir, image['path'])
+
+    return image
+
+
+def upload_image(id, image):
+    db = get_db()
+    if image:
+        path = os.path.join(
+            'static',
+            secure_filename(image.filename)
+        )
+        image.save(os.path.join(current_app.root_path, path))
+        db.execute(
+            'INSERT INTO image (path, post_id)'
+            ' VALUES (?, ?)',
+            (path, id)
+        )
+        db.commit()
+
+
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
@@ -128,6 +159,7 @@ def create():
         title = request.form['title']
         body = request.form['body']
         tags = request.form['tags']
+        image = request.files['image']
         error = None
 
         if not title:
@@ -153,6 +185,7 @@ def create():
                 (title, body, g.user['id'])
             ).fetchone()['id']
             insert_tags(post_id, tags)
+            upload_image(post_id, image)
             return redirect(url_for('blog.index'))
 
     return render_template('blog/create.html')
@@ -163,11 +196,14 @@ def create():
 def update(id):
     post = get_post(id)
     tags = get_tags(id)
+    tags = ' '.join(tags)
+    image = get_image(id)
 
     if request.method == "POST":
         title = request.form['title']
         body = request.form['body']
         tags = request.form['tags']
+        image = request.files['image']
         error = None
 
         if not title:
@@ -190,17 +226,45 @@ def update(id):
             if tags is not None:
                 tags = tags.split()
             insert_tags(id, tags)
+
+            images = db.execute(
+                'SELECT path FROM image WHERE post_id = ?',
+                (id,)
+            ).fetchall()
+            for image in images:
+                path = os.path.join(current_app.root_path, image['path'])
+                os.remove(path)
+
+            db.execute(
+                'DELETE FROM image WHERE post_id = ?',
+                (id,)
+            )
+            db.commit()
+            upload_image(id, image)
+
             return redirect(url_for('blog.index'))
 
-    tags = ' '.join(tags)
-    return render_template('blog/update.html', post=post, tags=tags)
+    return render_template(
+        'blog/update.html',
+        post=post,
+        tags=tags,
+        image=image
+    )
 
 
 @bp.route('/<int:id>/delete', methods=('POST',))
 @login_required
 def delete(id):
-    get_post(id)
+    post = get_post(id)
     db = get_db()
+    image = db.execute(
+        'SELECT path FROM image'
+        ' WHERE post_id = ?',
+        (post['id'],)
+    ).fetchone()
+    if image is not None:
+        path = os.path.join(current_app.root_path, image['path'])
+        os.remove(path)
     db.execute('DELETE FROM post WHERE id = ?', (id,))
     db.commit()
     return redirect(url_for('blog.index'))
@@ -208,17 +272,18 @@ def delete(id):
 
 @bp.route('/<int:id>/detail')
 def detail(id):
-    db = get_db()
     post = get_post(id, check_author=False)
     likes = get_likes(id)
     tags = get_tags(id)
     comments = get_comments(id)
+    image = get_image(id)
     return render_template(
         'blog/detail.html', 
         post=post, 
         tags=tags, 
         likes=likes, 
-        comments=comments
+        comments=comments,
+        image=image
     )
 
 
@@ -310,9 +375,10 @@ def tag_filter(tag):
     tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
 
     return render_template(
-        'blog/filter.html', 
-        posts=posts, 
+        'blog/filter.html',
+        posts=posts,
         tags=tags,
+        offset=offset,
         length=length
     )
 

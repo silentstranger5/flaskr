@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS like;
 DROP TABLE IF EXISTS comment;
 DROP TABLE IF EXISTS tag;
 DROP TABLE IF EXISTS tag_post;
+DROP TABLE IF EXISTS image;
 
 CREATE TABLE user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,8 +26,8 @@ CREATE TABLE like (
   user_id INTEGER NOT NULL,
   post_id INTEGER NOT NULL,
   value INTEGER NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES user (id)
-  FOREIGN KEY (post_id) REFERENCES post (id)
+  FOREIGN KEY (user_id) REFERENCES user (id),
+  FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
 
 CREATE TABLE comment (
@@ -36,7 +37,7 @@ CREATE TABLE comment (
   body TEXT NOT NULL,
   post_id INTEGER NOT NULL,
   FOREIGN KEY (author_id) REFERENCES user (id),
-  FOREIGN KEY (post_id) REFERENCES post (id)
+  FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
 
 CREATE TABLE tag (
@@ -49,5 +50,12 @@ CREATE TABLE tag_post (
   tag_id INTEGER NOT NULL,
   post_id INTEGER NOT NULL,
   FOREIGN KEY (tag_id) REFERENCES tag (id),
-  FOREIGN KEY (post_id) REFERENCES post (id)
+  FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
+);
+
+CREATE TABLE image (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  path TEXT NOT NULL,
+  post_id INTEGER NOT NULL,
+  FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
