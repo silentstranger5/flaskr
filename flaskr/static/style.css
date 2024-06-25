@@ -30,3 +30,4 @@ input[type=submit] { align-self: start; min-width: 10em; }
 .like { margin-bottom: 1em; }
 .content > header form.search { display: flex; flex-direction: row; margin-bottom: 0; }
 .content > header form.search > input { margin-bottom: 0.5em; margin-right: 0.5em; }
+footer { display: flex; flex-direction: row; justify-content: space-between; }

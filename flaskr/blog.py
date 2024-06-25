@@ -13,13 +13,31 @@ bp = Blueprint('blog', __name__)
 @bp.route('/')
 def index():
     db = get_db()
+    offset = request.args.get('offset')
+    if offset is None:
+        offset = 0
+    else:
+        offset = int(offset) 
+
+    length = db.execute(
+        'SELECT COUNT(*) FROM post'
+    ).fetchone()[0]
+
     posts = db.execute(
         'SELECT p.id, title, body, created, author_id, username'
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' ORDER BY created DESC'
+        ' LIMIT 5 OFFSET ?',
+        (offset,)
     ).fetchall()
     tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
-    return render_template('blog/index.html', posts=posts, tags=tags)
+    return render_template(
+        'blog/index.html', 
+        posts=posts, 
+        tags=tags, 
+        offset=offset, 
+        length=length
+    )
 
 
 def get_post(id, check_author=True):
@@ -265,35 +283,76 @@ def comment(id):
 @bp.route('/tags/<tag>')
 def tag_filter(tag):
     db = get_db()
-    posts = db.execute(
-        'SELECT *, username FROM post'
+    offset = request.args.get('offset')
+    if offset is None:
+        offset = 0
+    else:
+        offset = int(offset)
+    length = db.execute(
+        'SELECT COUNT(*) FROM post'
         ' JOIN tag_post ON post.id = tag_post.post_id'
         ' JOIN tag ON tag_post.tag_id = tag.id'
         ' JOIN user ON post.author_id = user.id'
         ' WHERE tag.tag = ?'
         ' ORDER BY created DESC',
         (tag,)
+    ).fetchone()[0]
+    posts = db.execute(
+        'SELECT *, username FROM post'
+        ' JOIN tag_post ON post.id = tag_post.post_id'
+        ' JOIN tag ON tag_post.tag_id = tag.id'
+        ' JOIN user ON post.author_id = user.id'
+        ' WHERE tag.tag = ?'
+        ' ORDER BY created DESC'
+        ' LIMIT 5 OFFSET ?',
+        (tag, offset)
     ).fetchall()
     tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
 
-    return render_template('blog/filter.html', posts=posts, tags=tags)
+    return render_template(
+        'blog/filter.html', 
+        posts=posts, 
+        tags=tags,
+        length=length
+    )
 
 
 @bp.route('/search')
 def search():
     db = get_db()
     query = request.args.get('query')
+    offset = request.args.get('offset')
 
     if not query:
         abort(400, 'Search query is empty')
+
+    if not offset:
+        offset = 0
+    else:
+        offset = int(offset)
+
+    length = db.execute(
+        'SELECT COUNT(*) FROM post'
+        ' JOIN user ON post.author_id = user.id'
+        ' WHERE post.title LIKE ?'
+        ' ORDER BY created DESC',
+        (f'%{query}%',)
+    ).fetchone()[0]
 
     posts = db.execute(
         'SELECT *, username FROM post'
         ' JOIN user ON post.author_id = user.id'
         ' WHERE post.title LIKE ?'
-        ' ORDER BY created DESC',
-        (f'%{query}%',)
+        ' ORDER BY created DESC'
+        ' LIMIT 5 OFFSET ?',
+        (f'%{query}%', offset)
     ).fetchall()
     tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
 
-    return render_template('blog/filter.html', posts=posts, tags=tags)
+    return render_template(
+        'blog/filter.html', 
+        posts=posts, 
+        tags=tags,
+        length=length,
+        offset=offset
+    )

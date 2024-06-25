@@ -34,11 +34,21 @@
       {% endif %}
     </div>
     </article>
-    {% if not loop.last %}
-      <hr>
-    {% endif %}
+    <hr>
   {% endfor %}
   {% if not posts %}
     <p>No posts were found for the specified request</p>
   {% endif %}
+  <footer>
+    {% if offset > 0 %}
+      <a href="{{ url_for('blog.index', offset=offset-5) }}">Previous</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+    {% if (offset + 1) * 5 < length %}
+      <a href="{{ url_for('blog.index', offset=offset+5) }}">Next</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+  </footer>
 {% endblock %}
