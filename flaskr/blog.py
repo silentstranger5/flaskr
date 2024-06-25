@@ -50,6 +50,17 @@ def get_likes(id):
     return likes
 
 
+def get_comments(id):
+    comments = get_db().execute(
+        'SELECT *, username FROM comment'
+        ' JOIN user ON comment.author_id = user.id'
+        ' WHERE comment.post_id = ?',
+        (id,)
+    ).fetchall()
+    
+    return comments
+
+
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
@@ -117,9 +128,10 @@ def delete(id):
 @bp.route('/<int:id>/detail')
 def detail(id):
     db = get_db()
-    post = get_post(id)
+    post = get_post(id, check_author=False)
     likes = get_likes(id)
-    return render_template('blog/detail.html', post=post, likes=likes)
+    comments = get_comments(id)
+    return render_template('blog/detail.html', post=post, likes=likes, comments=comments)
 
 
 @bp.route('/<int:id>/like')
@@ -151,3 +163,26 @@ def like(id):
     )
     db.commit()
     return redirect(url_for('blog.detail', id=post['id']))
+
+
+@bp.route('/<int:id>/comment', methods=('POST',))
+@login_required
+def comment(id):
+    body = request.form['body']
+    error = None
+
+    if not body:
+        error = 'Comment is required'
+
+    if error is not None:
+        flash(error)
+    else:
+        db = get_db()
+        db.execute(
+            'INSERT INTO comment (author_id, post_id, body)'
+            ' VALUES (?, ?, ?)',
+            (g.user['id'], id, body)
+        )
+        db.commit()
+
+    return redirect(url_for('blog.detail', id=id))

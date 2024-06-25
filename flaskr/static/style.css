@@ -24,3 +24,6 @@ nav ul li a, nav ul li span, header .action { display: block; padding: 0.5rem; }
 .content textarea { min-height: 12em; resize: vertical; }
 input.danger { color: #cc2f2e; }
 input[type=submit] { align-self: start; min-width: 10em; }
+
+.comment .about { display: flex; align-items: flex-end; font-size: 0.85em; color: slategray; font-style: italic }
+.comment > header h1 { margin-bottom: 0; }
