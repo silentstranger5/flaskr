@@ -18,7 +18,8 @@ def index():
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' ORDER BY created DESC'
     ).fetchall()
-    return render_template('blog/index.html', posts=posts)
+    tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
+    return render_template('blog/index.html', posts=posts, tags=tags)
 
 
 def get_post(id, check_author=True):
@@ -57,8 +58,49 @@ def get_comments(id):
         ' WHERE comment.post_id = ?',
         (id,)
     ).fetchall()
-    
+
     return comments
+
+
+def get_tags(id):
+    tags = get_db().execute(
+        'SELECT tag FROM tag'
+        ' JOIN tag_post ON tag.id = tag_post.tag_id'
+        ' WHERE tag_post.post_id = ?',
+        (id,)
+    ).fetchall()
+
+    if tags is not None:
+        tags = list(tag['tag'] for tag in tags)
+
+    return tags
+
+
+def insert_tags(id, tags):
+    db = get_db()
+    for tag in tags:
+        current = db.execute(
+            'SELECT * FROM tag WHERE tag = ?',
+            (tag,)
+        ).fetchone()
+        if current is None:
+            db.execute(
+                'INSERT INTO tag (tag)'
+                ' VALUES (?)',
+                (tag,)
+            )
+    db.commit()
+    for tag in tags:
+        tag_id = db.execute(
+            'SELECT id FROM tag WHERE tag = ?',
+            (tag,)
+        ).fetchone()['id']
+        db.execute(
+            'INSERT INTO tag_post (tag_id, post_id)'
+            ' VALUES (?, ?)',
+            (tag_id, id)
+        )
+    db.commit()
 
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -67,6 +109,7 @@ def create():
     if request.method == 'POST':
         title = request.form['title']
         body = request.form['body']
+        tags = request.form['tags']
         error = None
 
         if not title:
@@ -82,6 +125,16 @@ def create():
                 (title, body, g.user['id'])
             )
             db.commit()
+            if tags is not None:
+                tags = tags.split()
+            post_id = db.execute(
+                'SELECT id FROM post WHERE'
+                ' title = ? AND body = ? AND author_id = ?'
+                ' ORDER BY created DESC'
+                ' LIMIT 1',
+                (title, body, g.user['id'])
+            ).fetchone()['id']
+            insert_tags(post_id, tags)
             return redirect(url_for('blog.index'))
 
     return render_template('blog/create.html')
@@ -91,10 +144,12 @@ def create():
 @login_required
 def update(id):
     post = get_post(id)
+    tags = get_tags(id)
 
     if request.method == "POST":
         title = request.form['title']
         body = request.form['body']
+        tags = request.form['tags']
         error = None
 
         if not title:
@@ -109,10 +164,18 @@ def update(id):
                 ' WHERE id = ?',
                 (title, body, id)
             )
+            db.execute(
+                'DELETE FROM tag_post WHERE post_id = ?',
+                (id,)
+            )
             db.commit()
+            if tags is not None:
+                tags = tags.split()
+            insert_tags(id, tags)
             return redirect(url_for('blog.index'))
 
-    return render_template('blog/update.html', post=post)
+    tags = ' '.join(tags)
+    return render_template('blog/update.html', post=post, tags=tags)
 
 
 @bp.route('/<int:id>/delete', methods=('POST',))
@@ -130,8 +193,15 @@ def detail(id):
     db = get_db()
     post = get_post(id, check_author=False)
     likes = get_likes(id)
+    tags = get_tags(id)
     comments = get_comments(id)
-    return render_template('blog/detail.html', post=post, likes=likes, comments=comments)
+    return render_template(
+        'blog/detail.html', 
+        post=post, 
+        tags=tags, 
+        likes=likes, 
+        comments=comments
+    )
 
 
 @bp.route('/<int:id>/like')
@@ -186,3 +256,20 @@ def comment(id):
         db.commit()
 
     return redirect(url_for('blog.detail', id=id))
+
+
+@bp.route('/tags/<tag>')
+def tag_filter(tag):
+    db = get_db()
+    posts = db.execute(
+        'SELECT *, username FROM post'
+        ' JOIN tag_post ON post.id = tag_post.post_id'
+        ' JOIN tag ON tag_post.tag_id = tag.id'
+        ' JOIN user ON post.author_id = user.id'
+        ' WHERE tag.tag = ?'
+        ' ORDER BY created DESC',
+        (tag,)
+    ).fetchall()
+    tags = dict(tuple((post['id'], get_tags(post['id'])) for post in posts))
+
+    return render_template('blog/filter.html', posts=posts, tags=tags)
