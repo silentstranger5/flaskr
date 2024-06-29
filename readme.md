@@ -26,6 +26,7 @@ flask --app flaskr run
 ```
 
 You can use virtual environment before resolving dependencies. Read about it [here](https://docs.python.org/3/tutorial/venv.html)
+
 If you want to deploy this server to production, you can build and install this project. In this case, setting up a virtual environment is necessary:
 
 ```
