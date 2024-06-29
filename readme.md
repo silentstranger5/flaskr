@@ -19,9 +19,28 @@ Building should be fairly straightforward:
 ```
 git clone https://github.com/silentstranger5/flaskr.git
 cd flaskr
+# activate your virtual environment here (platform dependent)
 pip install -e .
 flask --app flaskr init-db
 flask --app flaskr run
 ```
 
-You optionally can use virtual environment before resolving dependencies. You can read about it [here](https://docs.python.org/3/tutorial/venv.html)
+You can use virtual environment before resolving dependencies. Read about it [here](https://docs.python.org/3/tutorial/venv.html)
+If you want to deploy this server to production, you can build and install this project. In this case, setting up a virtual environment is necessary:
+
+```
+pip install build
+python -m build --wheel
+mkdir prod
+cp dist/flaskr-1.0.0-py3-none-any.whl prod
+cd prod
+# activate your virtural environment here (platform dependent)
+pip install flaskr-1.0.0-py3-none-any.whl
+flask --app flaskr init-db
+# this command generates a secret key; copy it into the clipboard
+python -c 'import secrets; print(secrets.token_hex())'
+# paste your secret key in this file as 'SECRET_KEY = <your key>'
+vi .venv/var/flaskr-instance/config.py
+pip install waitress
+waitress-serve --host 127.0.0.1 --call 'flask:create_app'
+```
