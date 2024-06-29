@@ -132,8 +132,9 @@ def get_image(id):
         (id,)
     ).fetchone()
 
+
     if image is not None:
-        image = os.path.join(os.pardir, image['path'])
+        image = url_for('static', filename=f"images/{image['path']}")
 
     return image
 
@@ -141,11 +142,14 @@ def get_image(id):
 def upload_image(id, image):
     db = get_db()
     if image:
-        path = os.path.join(
-            'static',
-            secure_filename(image.filename)
+        path = secure_filename(image.filename)
+        image.save(
+            os.path.join(
+                current_app.root_path, 
+                'static', 'images',
+                path
+            )
         )
-        image.save(os.path.join(current_app.root_path, path))
         db.execute(
             'INSERT INTO image (path, post_id)'
             ' VALUES (?, ?)',
@@ -229,12 +233,16 @@ def update(id):
                 tags = tags.split()
             insert_tags(id, tags)
 
-            images = db.execute(
+            old_image = db.execute(
                 'SELECT path FROM image WHERE post_id = ?',
                 (id,)
-            ).fetchall()
-            for image in images:
-                path = os.path.join(current_app.root_path, image['path'])
+            ).fetchone()
+            if old_image:
+                path = os.path.join(
+                    current_app.root_path, 
+                    'static', 'images',
+                    old_image['path']
+                )
                 os.remove(path)
 
             db.execute(
@@ -261,11 +269,15 @@ def delete(id):
     db = get_db()
     image = db.execute(
         'SELECT path FROM image'
-        ' WHERE post_id = ?',
+        '  WHERE post_id = ?',
         (post['id'],)
     ).fetchone()
     if image is not None:
-        path = os.path.join(current_app.root_path, image['path'])
+        path = os.path.join(
+            current_app.root_path, 
+            'static', 'images',
+            image['path']
+        )
         os.remove(path)
     db.execute('DELETE FROM post WHERE id = ?', (id,))
     db.commit()
