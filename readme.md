@@ -32,10 +32,6 @@ If you want to deploy this server to production, you can build and install this 
 ```
 pip install build
 python -m build --wheel
-mkdir prod
-cp dist/flaskr-1.0.0-py3-none-any.whl prod
-cd prod
-# activate your virtural environment here (platform dependent)
 pip install flaskr-1.0.0-py3-none-any.whl
 flask --app flaskr init-db
 # this command generates a secret key; copy it into the clipboard
