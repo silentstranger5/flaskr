@@ -33,11 +33,9 @@ If you want to deploy this server to production, you can build and install this 
 pip install build
 python -m build --wheel
 pip install flaskr-1.0.0-py3-none-any.whl
-flask --app flaskr init-db
-# this command generates a secret key; copy it into the clipboard
 python -c 'import secrets; print(secrets.token_hex())'
-# paste your secret key in this file as 'SECRET_KEY = <your key>'
-vi .venv/var/flaskr-instance/config.py
+# copy this key and insert it into .venv/var/flaskr-instance/config.py
+# as SECRET_KEY = <output_from_previous_line>
 pip install waitress
 waitress-serve --host 127.0.0.1 --call 'flask:create_app'
 ```
